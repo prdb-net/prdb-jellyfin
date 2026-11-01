@@ -33,7 +33,12 @@ jobs:
               echo "Tag $GITHUB_REF_NAME is not vX.Y.Z" >&2
               exit 1
             fi
-            changelog="$(git tag -l --format='%(contents:subject)' "$GITHUB_REF_NAME")"
+            # actions/checkout fetches a tag as a lightweight ref, which loses the annotation; fetch the
+            # annotated tag object itself before reading its message.
+            git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+            if [ "$(git cat-file -t "$GITHUB_REF_NAME")" = "tag" ]; then
+              changelog="$(git tag -l --format='%(contents:subject)' "$GITHUB_REF_NAME")"
+            fi
           else
             semver="0.0.${GITHUB_RUN_NUMBER}"
             changelog="Dry run"
