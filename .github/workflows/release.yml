@@ -1,0 +1,106 @@
+name: Release
+
+# A tag vX.Y.Z builds the plugin as version X.Y.Z.0, publishes the archive as a GitHub release and adds
+# the version to manifest.json on main, which is what Jellyfin's plugin repository URL points at.
+# Run by hand, it builds the archive and the updated manifest as an artifact and publishes nothing.
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Determine the version
+        id: version
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            semver="${GITHUB_REF_NAME#v}"
+            if ! printf '%s' "$semver" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "Tag $GITHUB_REF_NAME is not vX.Y.Z" >&2
+              exit 1
+            fi
+            changelog="$(git tag -l --format='%(contents:subject)' "$GITHUB_REF_NAME")"
+          else
+            semver="0.0.${GITHUB_RUN_NUMBER}"
+            changelog="Dry run"
+          fi
+          echo "semver=$semver" >> "$GITHUB_OUTPUT"
+          echo "plugin=$semver.0" >> "$GITHUB_OUTPUT"
+          echo "zip=prdb-jellyfin_$semver.zip" >> "$GITHUB_OUTPUT"
+          {
+            echo "changelog<<EOF_CHANGELOG"
+            echo "${changelog:-See the release notes on GitHub.}"
+            echo "EOF_CHANGELOG"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Test
+        run: dotnet test --solution Jellyfin.Plugin.Prdb.slnx --configuration Release
+
+      - name: Build
+        run: >
+          dotnet build src/Jellyfin.Plugin.Prdb/Jellyfin.Plugin.Prdb.csproj --configuration Release
+          -p:Version=${{ steps.version.outputs.plugin }}
+          -p:AssemblyVersion=${{ steps.version.outputs.plugin }}
+          -p:FileVersion=${{ steps.version.outputs.plugin }}
+          -p:InformationalVersion=${{ steps.version.outputs.semver }}
+
+      - name: Package
+        run: |
+          cd src/Jellyfin.Plugin.Prdb/bin/Release/net10.0
+          zip -X "$GITHUB_WORKSPACE/${{ steps.version.outputs.zip }}" Jellyfin.Plugin.Prdb.dll
+          unzip -l "$GITHUB_WORKSPACE/${{ steps.version.outputs.zip }}"
+
+      - name: Update the manifest
+        env:
+          CHANGELOG: ${{ steps.version.outputs.changelog }}
+        run: >
+          python3 build/update_manifest.py
+          --version ${{ steps.version.outputs.plugin }}
+          --zip ${{ steps.version.outputs.zip }}
+          --url https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.semver }}/${{ steps.version.outputs.zip }}
+          --changelog "$CHANGELOG"
+
+      - name: Keep the dry run's output
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dry-run
+          path: |
+            ${{ steps.version.outputs.zip }}
+            manifest.json
+
+      - name: Publish the release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME" "${{ steps.version.outputs.zip }}"
+          --title "prdb for Jellyfin ${{ steps.version.outputs.semver }}"
+          --generate-notes
+
+      - name: Commit the manifest to main
+        if: github.ref_type == 'tag'
+        run: |
+          cp manifest.json "$RUNNER_TEMP/manifest.json"
+          git fetch origin main
+          git checkout -B main origin/main
+          cp "$RUNNER_TEMP/manifest.json" manifest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "Add version ${{ steps.version.outputs.plugin }} to the plugin manifest"
+          git push origin main

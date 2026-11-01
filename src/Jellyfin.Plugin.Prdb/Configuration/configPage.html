@@ -8,10 +8,126 @@
     <div id="PrdbConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
         <div data-role="content">
             <div class="content-primary">
-                <h2 class="sectionTitle">prdb</h2>
-                <p>Settings follow in a later version.</p>
+                <form id="PrdbConfigForm">
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">prdb</h2>
+                        <p>
+                            Identifies videos in movie libraries against <a is="emby-linkbutton" class="button-link" href="https://prdb.net" target="_blank" rel="noopener">prdb.net</a>
+                            by file hash and file name, and fills in their metadata. The plugin only reads from prdb: it sends each file's
+                            name (without its folder), size and OSHash, and submits nothing.
+                        </p>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle">Connection</h3>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="PrdbApiKey">API key</label>
+                            <input id="PrdbApiKey" name="ApiKey" type="password" is="emby-input" autocomplete="off" />
+                            <div class="fieldDescription">The API key of your own prdb account. Required: without it nothing is identified.</div>
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="PrdbBaseUrl">Base URL</label>
+                            <input id="PrdbBaseUrl" name="BaseUrl" type="url" is="emby-input" placeholder="https://api.prdb.net" />
+                            <div class="fieldDescription">Leave as it is unless you were told otherwise.</div>
+                        </div>
+                        <div>
+                            <button is="emby-button" type="button" id="PrdbTestConnection" class="raised emby-button">
+                                <span>Test connection</span>
+                            </button>
+                            <div id="PrdbTestResult" class="fieldDescription" role="status"></div>
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle">Apply matches automatically</h3>
+                        <p class="fieldDescription">
+                            prdb says how far each match can be trusted. Choose which kinds the plugin applies on its own.
+                            Ambiguous matches and files only attributed to a site are never applied. To correct a match,
+                            enter the right prdb video id in the metadata editor; a set id is never replaced.
+                        </p>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="PrdbAcceptHashMatches" type="checkbox" is="emby-checkbox" />
+                                <span>Hash matches</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">The file's hash is known to prdb. The most reliable kind.</div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="PrdbAcceptExactFilenameMatches" type="checkbox" is="emby-checkbox" />
+                                <span>Exact file name matches</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">prdb has stored this file name for this exact file.</div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="PrdbAcceptNameHeuristicMatches" type="checkbox" is="emby-checkbox" />
+                                <span>File name heuristics</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">The file name equals a scene release name, or carries a site, a date and a title. Names can collide, so these matches are occasionally wrong.</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span>Save</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
+        <script type="text/javascript">
+            (function () {
+                var pluginId = '74e0efe4-afea-43e4-8b19-1cf114c7755b';
+                var page = document.querySelector('#PrdbConfigPage');
+                var field = function (id) { return page.querySelector('#' + id); };
+
+                page.addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        field('PrdbApiKey').value = config.ApiKey || '';
+                        field('PrdbBaseUrl').value = config.BaseUrl || '';
+                        field('PrdbAcceptHashMatches').checked = config.AcceptHashMatches;
+                        field('PrdbAcceptExactFilenameMatches').checked = config.AcceptExactFilenameMatches;
+                        field('PrdbAcceptNameHeuristicMatches').checked = config.AcceptNameHeuristicMatches;
+                        field('PrdbTestResult').textContent = '';
+                        Dashboard.hideLoadingMsg();
+                    });
+                });
+
+                field('PrdbTestConnection').addEventListener('click', function () {
+                    var result = field('PrdbTestResult');
+                    result.textContent = 'Testing…';
+                    ApiClient.ajax({
+                        type: 'POST',
+                        url: ApiClient.getUrl('Prdb/TestConnection'),
+                        data: JSON.stringify({ ApiKey: field('PrdbApiKey').value, BaseUrl: field('PrdbBaseUrl').value }),
+                        contentType: 'application/json',
+                        dataType: 'json'
+                    }).then(function (response) {
+                        result.textContent = response.Message || response.message;
+                    }, function () {
+                        result.textContent = 'The test could not be run.';
+                    });
+                });
+
+                page.querySelector('#PrdbConfigForm').addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        config.ApiKey = field('PrdbApiKey').value.trim();
+                        config.BaseUrl = field('PrdbBaseUrl').value.trim();
+                        config.AcceptHashMatches = field('PrdbAcceptHashMatches').checked;
+                        config.AcceptExactFilenameMatches = field('PrdbAcceptExactFilenameMatches').checked;
+                        config.AcceptNameHeuristicMatches = field('PrdbAcceptNameHeuristicMatches').checked;
+                        ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                        });
+                    });
+                    return false;
+                });
+            })();
+        </script>
     </div>
 </body>
 </html>

@@ -540,3 +540,8 @@ dotnet_diagnostic.xUnit1028.severity = none
 
 # CA1826: Do not use Enumerable methods on indexable collections
 dotnet_diagnostic.CA1826.severity = suggestion
+
+# The wire models of the prdb API are small records that read best side by side.
+[src/Jellyfin.Plugin.Prdb/Api/PrdbModels.cs]
+dotnet_diagnostic.SA1402.severity = none
+dotnet_diagnostic.SA1649.severity = none
