@@ -5,7 +5,7 @@
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Test code formats for assertions and names its methods as sentences; the plugin's globalization and naming rules do not apply. -->
-    <NoWarn>$(NoWarn);CA1305;CA1707;CA2007;CA1515;CA2000</NoWarn>
+    <NoWarn>$(NoWarn);CA1305;CA1707;CA2007;CA1515;CA2000;CA1001;CA1849;CA2025</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
