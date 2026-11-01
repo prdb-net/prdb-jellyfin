@@ -2,7 +2,7 @@
   {
     "guid": "74e0efe4-afea-43e4-8b19-1cf114c7755b",
     "name": "prdb",
-    "description": "Identifies videos by file hash and file name against prdb.net and fills in their title, description, release date, site, performers and images. Read-only: the plugin submits nothing to prdb. Requires the API key of a prdb account.",
+    "description": "Identifies adult videos in your Jellyfin movie libraries by file hash and file name against prdb.net and fills in their title, description, release date, site, performers and images. Read-only: the plugin submits nothing to prdb. Requires the API key of a prdb account. Setup guide: https://github.com/prdb-net/prdb-jellyfin#setup",
     "overview": "Metadata for your videos from prdb.net",
     "owner": "prdb-net",
     "category": "Metadata",
