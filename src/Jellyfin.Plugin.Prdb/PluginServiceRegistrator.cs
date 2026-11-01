@@ -1,5 +1,6 @@
 using Jellyfin.Plugin.Prdb.Api;
 using Jellyfin.Plugin.Prdb.Api.Controllers;
+using Jellyfin.Plugin.Prdb.Identification;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Plugins;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,5 +17,10 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
     {
         serviceCollection.AddSingleton<IPrdbClient, PrdbClient>();
         serviceCollection.AddSingleton<ConnectionTester>();
+        serviceCollection.AddSingleton<PrdbDataDirectory>();
+        serviceCollection.AddSingleton<IdentificationStore>();
+        serviceCollection.AddSingleton<VideoCache>();
+        serviceCollection.AddSingleton<Identifier>();
+        serviceCollection.AddSingleton<LibraryIdentifier>();
     }
 }
