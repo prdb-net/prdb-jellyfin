@@ -26,3 +26,16 @@ jobs:
 
       - name: Test
         run: dotnet test --solution Jellyfin.Plugin.Prdb.slnx --configuration Release --no-build
+
+  e2e:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: End-to-end tests in Jellyfin
+        run: python3 -u tests/e2e/run.py

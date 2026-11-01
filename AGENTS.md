@@ -39,6 +39,23 @@ dotnet test --solution Jellyfin.Plugin.Prdb.slnx
 `global.json` selects the .NET 10 SDK and the Microsoft Testing Platform runner. CI runs the same
 commands on every push to `main` and on pull requests.
 
+### End-to-end tests
+
+```sh
+python3 tests/e2e/run.py          # add --keep to leave Jellyfin running at http://localhost:18100
+```
+
+`tests/e2e/run.py` builds the plugin, generates small test videos with the ffmpeg inside the Jellyfin image,
+and starts `tests/e2e/docker-compose.yml`: a pinned `jellyfin/jellyfin` 12.x with the plugin, and
+`tests/e2e/mock/prdb_mock.py`, a stand-in for the prdb API that answers from fixed data. It then drives Jellyfin
+through its HTTP API — wizard, plugin settings, a movie library with prdb switched on, scans, the scheduled task —
+and checks the outcome: hash, exact-file-name and heuristic matches applied, ambiguous and unknown files left alone,
+a hand-entered id winning, the heuristics switch honoured, and what went over the wire. The hash case only matches
+with an OSHash the script computes independently. It needs Docker with the compose plugin and runs in CI after the
+unit tests; the work directory is `artifacts/e2e` (ignored).
+
+When the Jellyfin image tag is raised, raise it in `docker-compose.yml` and `run.py` together.
+
 To try the plugin in a real server, copy the built `Jellyfin.Plugin.Prdb.dll` into
 `<jellyfin config>/plugins/prdb_<version>/` and restart Jellyfin; the log line
 `Loaded plugin: prdb <version>` confirms it loaded.

@@ -1,0 +1,27 @@
+# The end-to-end environment: a real Jellyfin with the built plugin, and a stand-in for the prdb API.
+# Started and torn down by run.py, which also fills E2E_WORK with the plugin, the media and the mock data.
+name: prdb-jellyfin-e2e
+
+services:
+  jellyfin:
+    image: ${JELLYFIN_IMAGE:-jellyfin/jellyfin:12.4.20261026-211555}
+    ports:
+      - "${E2E_PORT:-18100}:8096"
+    volumes:
+      - ${E2E_WORK}/config:/config
+      - ${E2E_WORK}/cache:/cache
+      - ${E2E_WORK}/media:/media
+    depends_on:
+      - prdb-mock
+
+  prdb-mock:
+    image: python:3.12-alpine
+    command: ["python", "-u", "/app/prdb_mock.py"]
+    environment:
+      MOCK_DATA: /data
+      MOCK_BASE_URL: http://prdb-mock:8080
+    ports:
+      - "${E2E_MOCK_PORT:-18101}:8080"
+    volumes:
+      - ./mock:/app:ro
+      - ${E2E_WORK}/mock:/data:ro

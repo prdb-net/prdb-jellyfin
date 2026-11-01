@@ -43,6 +43,8 @@ public class PrdbClientTests
         Assert.Equal("https://api.example.test/videos/identify", request.RequestUri!.AbsoluteUri);
         Assert.Equal("secret-key", Assert.Single(request.Headers.GetValues("X-Api-Key")));
         Assert.StartsWith("Jellyfin.Plugin.Prdb/", request.Headers.UserAgent.ToString(), StringComparison.Ordinal);
+        Assert.Equal(System.Text.Encoding.UTF8.GetByteCount(body!), request.Content!.Headers.ContentLength);
+        Assert.Equal("application/json", request.Content.Headers.ContentType!.MediaType);
 
         using var json = JsonDocument.Parse(body!);
         Assert.True(json.RootElement.GetProperty("includeVideoDetails").GetBoolean());
