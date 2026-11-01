@@ -43,6 +43,23 @@ To try the plugin in a real server, copy the built `Jellyfin.Plugin.Prdb.dll` in
 `<jellyfin config>/plugins/prdb_<version>/` and restart Jellyfin; the log line
 `Loaded plugin: prdb <version>` confirms it loaded.
 
+## Releases
+
+A release is a tag `vX.Y.Z` on `main`. The `Release` workflow tests and builds the plugin as version `X.Y.Z.0`,
+publishes `prdb-jellyfin_X.Y.Z.zip` as a GitHub release and commits the new version to `manifest.json` on `main`
+(`build/update_manifest.py`), which is the plugin repository Jellyfin reads. The tag's subject line becomes the
+changelog in Jellyfin's catalog, so tag with a message:
+
+```sh
+git tag -a v0.2.0 -m "What changed, in one line"
+git push origin v0.2.0
+```
+
+Versions follow SemVer; `targetAbi` in the manifest is the oldest Jellyfin the plugin is built against
+(`12.0.0.0`). Running the workflow by hand is a dry run: it uploads the archive and the updated manifest as an
+artifact and publishes nothing. Publishing a release is a decision for a maintainer, not a step an agent takes on
+its own.
+
 ## Tickets
 
 Work for this repository is tracked in planaffe, project `JELLYFIN`; the checked-in `.planaffe` names it.
