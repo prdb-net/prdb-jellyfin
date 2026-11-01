@@ -103,14 +103,16 @@ class Jellyfin:
             raise Failure(f"{method} {path} answered {status}: {raw[:300]!r}")
         return json.loads(raw) if raw and raw[:1] in (b"{", b"[") else None
 
-    def wait_until_up(self, timeout=180):
+    def wait_until_up(self, timeout=240):
+        # /health answers 200 while Jellyfin still serves its 503 startup page; the public system info is
+        # only JSON once the server is ready for API calls.
         deadline = time.time() + timeout
         while time.time() < deadline:
             try:
-                with urllib.request.urlopen(self.base + "/health", timeout=5) as response:
-                    if response.status == 200:
+                with urllib.request.urlopen(self.base + "/System/Info/Public", timeout=5) as response:
+                    if response.status == 200 and "Version" in json.loads(response.read()):
                         return
-            except OSError:
+            except (OSError, ValueError):
                 pass
             time.sleep(2)
         raise Failure("Jellyfin did not come up")
