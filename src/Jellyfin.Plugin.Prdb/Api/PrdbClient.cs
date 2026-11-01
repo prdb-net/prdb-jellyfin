@@ -86,7 +86,12 @@ public sealed class PrdbClient : IPrdbClient
                 connection,
                 () => new HttpRequestMessage(HttpMethod.Post, connection.Resolve("videos/identify"))
                 {
-                    Content = JsonContent.Create(body, options: JsonOptions),
+                    // Buffered with a Content-Length rather than streamed chunked: some proxies in front of
+                    // an API refuse chunked request bodies, and the body is small.
+                    Content = new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(body, JsonOptions))
+                    {
+                        Headers = { ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" } },
+                    },
                 },
                 allowNotFound: false,
                 cancellationToken).ConfigureAwait(false);

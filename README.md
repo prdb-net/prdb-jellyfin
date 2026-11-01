@@ -36,6 +36,11 @@ Open **Dashboard → Plugins → prdb**:
 - **Base URL** – leave it at `https://api.prdb.net`.
 - **Test connection** checks the key before you save it.
 
+Then switch prdb on for the libraries it should handle: **Dashboard → Libraries → (library) → Manage library**,
+and under *Metadata downloaders (Movies)* and *Image fetchers (Movies)* tick **prdb** and move it to the top. The
+plugin only ever looks at movie libraries where prdb is ticked; files in other libraries are never sent to prdb.
+Then run **Dashboard → Scheduled Tasks → prdb → Identify library** once, or wait for the next library scan.
+
 prdb says how far each match can be trusted. Three switches decide which kinds the plugin applies on its own;
 all three are on by default:
 
@@ -53,7 +58,7 @@ that is set is never replaced by the automatic identification.
 
 ## Privacy
 
-For each video file the plugin sends prdb the file name without its folder, the file size and the OSHash. According
+Only files in libraries where prdb is switched on are looked at. For each such file the plugin sends prdb the file name without its folder, the file size and the OSHash. According
 to the prdb API documentation, identification stores neither full file names nor hashes. The plugin submits nothing
 to prdb and works only with the API key you enter.
 
