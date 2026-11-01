@@ -1,0 +1,4 @@
+# Which vaultaffe project and environment this checkout means. Never a value.
+# Bind this directory once with `vaultaffe setup`, which reads this file.
+project = prdb
+environment = development
