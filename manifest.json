@@ -9,6 +9,14 @@
     "imageUrl": "",
     "versions": [
       {
+        "version": "0.1.1.0",
+        "changelog": "Setup guide: library recommendations on the configuration page and in the README",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/prdb-net/prdb-jellyfin/releases/download/v0.1.1/prdb-jellyfin_0.1.1.zip",
+        "checksum": "6a6487a3f0d729b1a6c7d023d06a334c",
+        "timestamp": "2026-11-01T16:11:57Z"
+      },
+      {
         "version": "0.1.0.0",
         "changelog": "First release: identifies videos by OSHash and file name against prdb.net",
         "targetAbi": "12.0.0.0",
