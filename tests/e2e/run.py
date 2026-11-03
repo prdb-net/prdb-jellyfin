@@ -15,6 +15,10 @@ What it checks:
   4. With the heuristics switch off, a new file prdb matches only by name stays unidentified, also when
      the scheduled task runs.
   5. Every request carried the API key, sent no folder names, and nothing was submitted to prdb.
+  6. Studio collections are off by default. Switched on, there is one collection per site and network,
+     holding exactly the identified videos of that studio, with a cover, in the library's collections,
+     and invisible to a user without access to the library; a collection whose last video goes is
+     deleted. Switched off, the plugin's collections go and a collection made by hand stays.
 """
 import argparse
 import json
@@ -134,6 +138,21 @@ class Jellyfin:
             "Fields": "ProviderIds,Studios,People,Overview,PremiereDate,Path",
         })
         return {pathlib.Path(item["Path"]).name: item for item in self.request("GET", "/Items?" + query)["Items"]}
+
+    def collections(self, user_id=None, token=None, parent_id=None):
+        """Collection name -> (item, names of the files in it), as the given user sees them."""
+        saved, self.token = self.token, token or self.token
+        try:
+            params = {"userId": user_id or self.user_id, "Recursive": "true", "IncludeItemTypes": "BoxSet", "Fields": "ProviderIds"}
+            if parent_id:
+                params["ParentId"] = parent_id
+            result = {}
+            for item in self.request("GET", "/Items?" + urllib.parse.urlencode(params))["Items"]:
+                children = self.request("GET", "/Items?" + urllib.parse.urlencode({"userId": user_id or self.user_id, "ParentId": item["Id"], "Fields": "Path"}))["Items"]
+                result[item["Name"]] = (item, sorted(pathlib.Path(c["Path"]).name for c in children))
+            return result
+        finally:
+            self.token = saved
 
     def task(self, key):
         return next(task for task in self.request("GET", "/ScheduledTasks") if task.get("Key") == key)
@@ -325,6 +344,55 @@ def scenario(jellyfin, work, mock_port):
     hashed = [f for f in files if f["filename"] == "exact.mp4"]
     expected_hash = oshash(work / "media/exact.mp4")
     check(expected_hash and hashed and hashed[0].get("osHash") == expected_hash, "the plugin's OSHash equals the independent implementation's")
+
+    studio_collections(jellyfin, work)
+
+
+def studio_collections(jellyfin, work):
+    # 6. Studio collections: off by default, then on, then off again.
+    def studios(collections):
+        return {name: files for name, (item, files) in collections.items() if "PrdbStudio" in item.get("ProviderIds", {})}
+
+    check(not studios(jellyfin.collections()), "no studio collections exist while the switch is off (the default)")
+
+    exact_id = jellyfin.movies()["exact.mp4"]["Id"]
+    jellyfin.request("POST", "/Collections?" + urllib.parse.urlencode({"name": "Made By Hand", "ids": exact_id}))
+
+    configure(jellyfin, AcceptNameHeuristicMatches=False, CreateStudioCollections=True)
+    identified = ["Site.A.24.05.06.Probable.Title.mp4", "Strong Name.mp4", "exact.mp4"]
+    expected = {"Site A": identified, "Network A": identified, "Site B": ["none.mp4"]}
+    found = wait_for("the studio collections", lambda: studios(jellyfin.collections()) == expected and studios(jellyfin.collections()))
+    check(found == expected, "one collection per site and network, holding exactly its identified videos")
+
+    library_id = next(f["ItemId"] for f in jellyfin.request("GET", "/Library/VirtualFolders") if f["Name"] == "Videos")
+    in_library = studios(jellyfin.collections(parent_id=library_id))
+    check(set(in_library) == set(expected), "the studio collections appear among the library's collections")
+
+    def with_cover():
+        item = jellyfin.collections()["Site A"][0]
+        return item if item.get("ImageTags", {}).get("Primary") else None
+
+    wait_for("a cover for the studio collection", with_cover)
+    check(True, "a studio collection gets the cover of one of its videos")
+
+    jellyfin.request("POST", "/Users/New", {"Name": "guest", "Password": "e2e-guest-password"})
+    guest = next(u for u in jellyfin.request("GET", "/Users") if u["Name"] == "guest")
+    policy = {**guest["Policy"], "EnableAllFolders": False, "EnabledFolders": []}
+    jellyfin.request("POST", f"/Users/{guest['Id']}/Policy", policy)
+    session = jellyfin.request("POST", "/Users/AuthenticateByName", {"Username": "guest", "Pw": "e2e-guest-password"})
+    check(not studios(jellyfin.collections(user_id=guest["Id"], token=session["AccessToken"])),
+          "a user without access to the library sees none of the studio collections")
+
+    # The only video of Site B goes: its collection goes with it instead of staying behind empty.
+    shutil.move(work / "media/none.mp4", work / "staging/none.mp4")
+    jellyfin.request("POST", "/Library/Refresh")
+    jellyfin.wait_for_task("RefreshLibrary")
+    wait_for("the emptied collection to go", lambda: "Site B" not in studios(jellyfin.collections()))
+    check(set(studios(jellyfin.collections())) == {"Site A", "Network A"}, "a studio collection whose last video is gone is deleted")
+
+    configure(jellyfin, AcceptNameHeuristicMatches=False, CreateStudioCollections=False)
+    wait_for("the studio collections to go", lambda: not studios(jellyfin.collections()))
+    check("Made By Hand" in jellyfin.collections(), "switched off, the plugin's collections go and one made by hand stays")
 
 
 def main():

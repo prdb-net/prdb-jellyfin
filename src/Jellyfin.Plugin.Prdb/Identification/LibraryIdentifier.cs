@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Jellyfin.Data.Enums;
+using Jellyfin.Plugin.Prdb.Collections;
 using Jellyfin.Plugin.Prdb.Configuration;
-using MediaBrowser.Controller.BaseItemManager;
-using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
@@ -27,32 +24,36 @@ public sealed class LibraryIdentifier
     private static readonly SemaphoreSlim RunLock = new(1, 1);
 
     private readonly ILibraryManager _libraryManager;
-    private readonly IBaseItemManager _baseItemManager;
+    private readonly PrdbLibraryScope _scope;
     private readonly IProviderManager _providerManager;
     private readonly IFileSystem _fileSystem;
     private readonly Identifier _identifier;
+    private readonly StudioCollections _studioCollections;
     private readonly ILogger<LibraryIdentifier> _logger;
 
     /// <summary>Initializes a new instance of the <see cref="LibraryIdentifier"/> class.</summary>
     /// <param name="libraryManager">Jellyfin's library.</param>
-    /// <param name="baseItemManager">Decides which providers are switched on for an item.</param>
+    /// <param name="scope">The movies the plugin looks at.</param>
     /// <param name="providerManager">Jellyfin's metadata providers.</param>
     /// <param name="fileSystem">Jellyfin's file system.</param>
     /// <param name="identifier">The identifier.</param>
+    /// <param name="studioCollections">Keeps the studio collections.</param>
     /// <param name="logger">The logger.</param>
     public LibraryIdentifier(
         ILibraryManager libraryManager,
-        IBaseItemManager baseItemManager,
+        PrdbLibraryScope scope,
         IProviderManager providerManager,
         IFileSystem fileSystem,
         Identifier identifier,
+        StudioCollections studioCollections,
         ILogger<LibraryIdentifier> logger)
     {
         _libraryManager = libraryManager;
-        _baseItemManager = baseItemManager;
+        _scope = scope;
         _providerManager = providerManager;
         _fileSystem = fileSystem;
         _identifier = identifier;
+        _studioCollections = studioCollections;
         _logger = logger;
     }
 
@@ -99,40 +100,24 @@ public sealed class LibraryIdentifier
         {
             RunLock.Release();
         }
+
+        // Matches applied just now only reach their studios once the queued refreshes are done; the
+        // collections follow those through StudioCollectionWatcher. This catches everything else.
+        await _studioCollections.UpdateAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private List<IdentificationCandidate> FindCandidates()
     {
-        var items = _libraryManager.GetItemList(new InternalItemsQuery
-        {
-            IncludeItemTypes = [BaseItemKind.Movie],
-            IsVirtualItem = false,
-            Recursive = true,
-        });
-
         var candidates = new List<IdentificationCandidate>();
-        foreach (var item in items)
+        foreach (var movie in _scope.Movies())
         {
-            if (item is not Movie movie
-                || string.IsNullOrEmpty(movie.Path)
-                || movie.HasProviderId(PrdbIds.ProviderKey)
-                || !IsPrdbEnabledFor(movie))
+            if (!movie.HasProviderId(PrdbIds.ProviderKey))
             {
-                continue;
+                candidates.Add(new IdentificationCandidate(movie.Id, movie.Path));
             }
-
-            candidates.Add(new IdentificationCandidate(movie.Id, movie.Path));
         }
 
         return candidates;
-    }
-
-    private bool IsPrdbEnabledFor(BaseItem item)
-    {
-        // The same rule Jellyfin applies before it calls a metadata provider, so the batch run never sends a
-        // file prdb would not have been asked about during a refresh.
-        var typeOptions = _libraryManager.GetLibraryOptions(item).GetTypeOptions(nameof(Movie));
-        return _baseItemManager.IsMetadataFetcherEnabled(item, typeOptions, PrdbIds.ProviderName);
     }
 
     private async Task ApplyAsync(IdentificationCandidate candidate, Guid videoId, CancellationToken cancellationToken)

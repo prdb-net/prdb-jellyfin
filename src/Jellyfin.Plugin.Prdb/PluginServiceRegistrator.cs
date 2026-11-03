@@ -1,5 +1,6 @@
 using Jellyfin.Plugin.Prdb.Api;
 using Jellyfin.Plugin.Prdb.Api.Controllers;
+using Jellyfin.Plugin.Prdb.Collections;
 using Jellyfin.Plugin.Prdb.Identification;
 using Jellyfin.Plugin.Prdb.Providers;
 using MediaBrowser.Controller;
@@ -23,6 +24,9 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<VideoCache>();
         serviceCollection.AddSingleton<Identifier>();
         serviceCollection.AddSingleton<VideoSource>();
+        serviceCollection.AddSingleton<PrdbLibraryScope>();
         serviceCollection.AddSingleton<LibraryIdentifier>();
+        serviceCollection.AddSingleton<StudioCollections>();
+        serviceCollection.AddHostedService<StudioCollectionWatcher>();
     }
 }
