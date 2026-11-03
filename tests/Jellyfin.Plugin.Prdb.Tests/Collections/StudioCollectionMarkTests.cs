@@ -1,5 +1,6 @@
 using Jellyfin.Plugin.Prdb.Collections;
 using Jellyfin.Plugin.Prdb.ExternalIds;
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Model.Entities;
 
@@ -33,4 +34,24 @@ public class StudioCollectionMarkTests
         Assert.True(externalId.Supports(new BoxSet()));
         Assert.False(externalId.Supports(new Movie()));
     }
+
+    [Fact]
+    public void A_cover_counts_only_when_its_file_is_on_disk()
+    {
+        var file = Path.GetTempFileName();
+        try
+        {
+            Assert.True(StudioCollectionImageProvider.HasLocalCover(WithCover(file)));
+            Assert.False(StudioCollectionImageProvider.HasLocalCover(WithCover(file + ".missing")));
+            Assert.False(StudioCollectionImageProvider.HasLocalCover(WithCover("https://cdn.example/cover.jpg")));
+            Assert.False(StudioCollectionImageProvider.HasLocalCover(new Movie()));
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    private static Movie WithCover(string path) =>
+        new() { ImageInfos = [new ItemImageInfo { Path = path, Type = ImageType.Primary }] };
 }

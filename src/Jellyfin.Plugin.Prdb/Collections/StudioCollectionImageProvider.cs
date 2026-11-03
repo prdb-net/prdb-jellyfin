@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -52,5 +53,7 @@ public class StudioCollectionImageProvider : IDynamicImageProvider
     /// <param name="movie">The movie.</param>
     /// <returns><c>true</c> when it has.</returns>
     internal static bool HasLocalCover(Movie movie) =>
-        movie.GetImageInfo(ImageType.Primary, 0) is { IsLocalFile: true };
+        // The file is checked as well: while a refresh replaces a movie's images, its image record can name a
+        // file that is not (or no longer) there, and Jellyfin fails the whole image refresh on it.
+        movie.GetImageInfo(ImageType.Primary, 0) is { IsLocalFile: true } image && File.Exists(image.Path);
 }
