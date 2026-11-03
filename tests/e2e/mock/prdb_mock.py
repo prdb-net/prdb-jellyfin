@@ -30,10 +30,20 @@ SITE = {
     "network": {"id": "6e000000-0000-0000-0000-000000000001", "title": "Network A", "url": "https://network-a.example"},
 }
 
+# A site of no network, for the video entered by hand, so the studio collections differ in members.
+SITE_B = {
+    **SITE,
+    "id": "5e000000-0000-0000-0000-000000000002",
+    "publicId": "S0002",
+    "title": "Site B",
+    "url": "https://site-b.example",
+    "network": None,
+}
+
 ACTOR_ID = "a0000000-0000-0000-0000-000000000001"
 
 
-def video(number, title):
+def video(number, title, site=SITE):
     video_id = f"00000000-0000-0000-0000-{number:012d}"
     return {
         "id": video_id,
@@ -44,7 +54,7 @@ def video(number, title):
         "releaseDate": "2024-05-06",
         "createdAtUtc": "2024-05-07T00:00:00Z",
         "updatedAtUtc": "2024-05-07T00:00:00Z",
-        "site": SITE,
+        "site": site,
         "qualityOverview": {},
         "images": [
             {"id": f"1{number:07d}-0000-0000-0000-000000000001", "url": f"{BASE}/images/cover.jpg"},
@@ -69,7 +79,7 @@ VIDEOS = {
     2: video(2, "Strong Video"),
     3: video(3, "Probable Video"),
     4: video(4, "Late Probable Video"),
-    5: video(5, "Manual Video"),
+    5: video(5, "Manual Video", SITE_B),
 }
 
 ACTOR = {

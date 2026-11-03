@@ -74,6 +74,21 @@
                         </div>
                     </div>
 
+                    <div class="verticalSection">
+                        <h3 class="sectionTitle">Collections</h3>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="PrdbCreateStudioCollections" type="checkbox" is="emby-checkbox" />
+                                <span>Create a collection per studio</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                Keeps one collection for every site and network of the identified videos, so apps without a studio view
+                                (the Android TV app, the TV layout) can browse them by studio under <em>Collections</em>. A collection is
+                                only visible to users who may see the library its videos are in. Switching this off removes these collections again.
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                             <span>Save</span>
@@ -96,6 +111,7 @@
                         field('PrdbAcceptHashMatches').checked = config.AcceptHashMatches;
                         field('PrdbAcceptExactFilenameMatches').checked = config.AcceptExactFilenameMatches;
                         field('PrdbAcceptNameHeuristicMatches').checked = config.AcceptNameHeuristicMatches;
+                        field('PrdbCreateStudioCollections').checked = config.CreateStudioCollections;
                         field('PrdbTestResult').textContent = '';
                         Dashboard.hideLoadingMsg();
                     });
@@ -126,6 +142,7 @@
                         config.AcceptHashMatches = field('PrdbAcceptHashMatches').checked;
                         config.AcceptExactFilenameMatches = field('PrdbAcceptExactFilenameMatches').checked;
                         config.AcceptNameHeuristicMatches = field('PrdbAcceptNameHeuristicMatches').checked;
+                        config.CreateStudioCollections = field('PrdbCreateStudioCollections').checked;
                         ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
                             Dashboard.processPluginConfigurationUpdateResult(result);
                         });

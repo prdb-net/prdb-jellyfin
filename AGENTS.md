@@ -50,7 +50,8 @@ and starts `tests/e2e/docker-compose.yml`: a pinned `jellyfin/jellyfin` 12.x wit
 `tests/e2e/mock/prdb_mock.py`, a stand-in for the prdb API that answers from fixed data. It then drives Jellyfin
 through its HTTP API — wizard, plugin settings, a movie library with prdb switched on, scans, the scheduled task —
 and checks the outcome: hash, exact-file-name and heuristic matches applied, ambiguous and unknown files left alone,
-a hand-entered id winning, the heuristics switch honoured, and what went over the wire. The hash case only matches
+a hand-entered id winning, the heuristics switch honoured, the opt-in studio collections (members, cover,
+visibility, clean-up), and what went over the wire. The hash case only matches
 with an OSHash the script computes independently. It needs Docker with the compose plugin and runs in CI after the
 unit tests; the work directory is `artifacts/e2e` (ignored).
 

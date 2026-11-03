@@ -33,4 +33,11 @@ public class PluginConfiguration : BasePluginConfiguration
     /// site, date and title (confidence Probable), is applied automatically. Names can collide.
     /// </summary>
     public bool AcceptNameHeuristicMatches { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the plugin keeps a collection per studio of the identified
+    /// videos, so clients without a studio view can still browse by site. Off unless the administrator
+    /// switches it on; switching it off removes the collections the plugin made.
+    /// </summary>
+    public bool CreateStudioCollections { get; set; }
 }

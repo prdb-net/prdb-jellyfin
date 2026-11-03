@@ -11,7 +11,7 @@ namespace Jellyfin.Plugin.Prdb.Tests.Configuration;
 public class ConfigurationTests
 {
     [Fact]
-    public void A_fresh_configuration_has_no_key_the_public_api_and_every_kind_of_match_switched_on()
+    public void A_fresh_configuration_has_no_key_the_public_api_every_kind_of_match_switched_on_and_no_studio_collections()
     {
         var configuration = new PluginConfiguration();
 
@@ -20,6 +20,7 @@ public class ConfigurationTests
         Assert.True(configuration.AcceptHashMatches);
         Assert.True(configuration.AcceptExactFilenameMatches);
         Assert.True(configuration.AcceptNameHeuristicMatches);
+        Assert.False(configuration.CreateStudioCollections);
     }
 
     [Fact]
@@ -32,6 +33,7 @@ public class ConfigurationTests
             AcceptHashMatches = true,
             AcceptExactFilenameMatches = false,
             AcceptNameHeuristicMatches = false,
+            CreateStudioCollections = true,
         };
         var serializer = new XmlSerializer(typeof(PluginConfiguration));
         using var buffer = new MemoryStream();
@@ -45,6 +47,7 @@ public class ConfigurationTests
         Assert.True(loaded.AcceptHashMatches);
         Assert.False(loaded.AcceptExactFilenameMatches);
         Assert.False(loaded.AcceptNameHeuristicMatches);
+        Assert.True(loaded.CreateStudioCollections);
     }
 
     [Fact]

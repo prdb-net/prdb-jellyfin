@@ -207,6 +207,27 @@ The plugin identifies every movie without a prdb id, whatever other providers fo
 match, the item's metadata and images are replaced with prdb's. Keep prdb at the top of the library's metadata
 downloaders so that a later refresh does not let another provider overwrite it.
 
+### Browsing by studio on TVs and phones
+
+The desktop web interface has a **Studios** tab in movie libraries. Other apps do not: the Android TV app and
+the web interface's TV layout (used on Samsung and LG TVs) only offer genres, collections and favourites, and
+mobile apps differ. To browse by studio there as well, switch on **Create a collection per studio** in the plugin
+settings. It is off by default.
+
+- The plugin then keeps one collection for every site and network of the identified videos, named after the
+  studio and holding exactly its videos. They appear in the library's **Collections** tab and in Jellyfin's
+  *Collections* library, in every app.
+- A collection follows its videos: new matches are added shortly after their metadata is filled in, videos that
+  are gone or now belong to another studio are taken out, and a collection whose last video is gone is deleted.
+  Editing a video's studios in the metadata editor moves it as well.
+- Each collection gets the cover of its newest video. prdb's site logos are not used.
+- A collection is only visible to users who may see a library its videos are in.
+- Switching the setting off deletes the collections the plugin made. Collections you made yourself are never
+  touched. The plugin recognises its own by the **prdb studio Id** field under *External IDs*; a collection
+  where you clear that field is no longer managed by the plugin.
+- If a user has **Group movies into collections** switched on (**Settings → Display**), their *Movies* tab
+  shows these collections instead of the single videos.
+
 ## Troubleshooting
 
 | Symptom | Cause and fix |
@@ -217,6 +238,7 @@ downloaders so that a later refresh does not let another provider overwrite it.
 | The log says *Stopped identifying against prdb* | prdb was unreachable, rejected the key, or the request budget of your account is used up for now. The next run continues where this one stopped; *Test connection* shows the remaining budget. |
 | Titles are right but images are missing | Tick **prdb** under **Image fetchers (Movies)** of the library and refresh the item with **Replace existing images**. |
 | A video got the wrong metadata | Correct it by hand (see above). If it was a name-based match and this happens often in your library, switch **File name heuristics** off. |
+| Studio collections do not appear | They follow about half a minute after the videos' metadata changes. Check that **Create a collection per studio** is switched on and saved, and that the videos carry a prdb id and studios. |
 | A changed setting has no effect on existing items | Run **Identify library** from **Dashboard → Scheduled Tasks**. |
 
 When asking for help, include the plugin version, the Jellyfin version and the log lines that mention prdb –
@@ -228,7 +250,8 @@ but never your API key.
   update and restart Jellyfin. Your settings are kept.
 - **Uninstalling:** uninstall **prdb** under **Dashboard → Plugins → Installed**, then restart Jellyfin. Metadata
   already filled in stays on your items; untick prdb in the libraries' settings so Jellyfin stops asking for
-  it. The plugin's remembered answers in `<jellyfin data>/prdb/` can be deleted.
+  it. The plugin's remembered answers in `<jellyfin data>/prdb/` can be deleted. If you use studio collections,
+  switch the setting off and save before uninstalling, so the plugin deletes them; otherwise they stay.
 
 ## Privacy
 
